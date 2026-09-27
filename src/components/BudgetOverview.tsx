@@ -1,6 +1,7 @@
 import React from 'react';
-import { DollarSign, PieChart, Tag, CreditCard } from 'lucide-react';
+import { PieChart } from 'lucide-react';
 import { Itinerary, ActivityCategory } from '../types/itinerary';
+import { formatCurrency } from '../lib/formatUtils';
 
 interface BudgetOverviewProps {
   itinerary: Itinerary;
@@ -41,7 +42,7 @@ export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ itinerary }) => 
             <h3 className="text-lg font-bold text-white">Interactive Budget Breakdown</h3>
           </div>
           <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-            Total: {totalCalculated} {itinerary.currency}
+            Total: {formatCurrency(totalCalculated, itinerary.currency)}
           </span>
         </div>
 
@@ -55,7 +56,7 @@ export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ itinerary }) => 
                 <div key={cat} className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
                   <div className="flex items-center justify-between text-xs font-semibold mb-1">
                     <span className="capitalize text-slate-300">{cat}</span>
-                    <span className="text-emerald-400">{val} {itinerary.currency}</span>
+                    <span className="text-emerald-400">{formatCurrency(val, itinerary.currency)}</span>
                   </div>
                   <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div

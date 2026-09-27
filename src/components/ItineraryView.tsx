@@ -12,6 +12,7 @@ import {
   Bookmark
 } from 'lucide-react';
 import { Itinerary, ItineraryStop } from '../types/itinerary';
+import { formatCurrency } from '../lib/formatUtils';
 import { DayCard } from './DayCard';
 
 interface ItineraryViewProps {
@@ -177,7 +178,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             <div>
               <span className="text-[10px] font-semibold text-slate-400 block uppercase">Est. Total Budget</span>
               <span className="text-2xl font-extrabold text-emerald-400">
-                {grandTotalCost} <span className="text-xs text-slate-400">{itinerary.currency}</span>
+                {formatCurrency(grandTotalCost, itinerary.currency)}
               </span>
             </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, Sparkles, DollarSign } from 'lucide-react';
 import { ItineraryDay, ItineraryStop } from '../types/itinerary';
+import { formatCurrency } from '../lib/formatUtils';
 import { ActivityItem } from './ActivityItem';
 import { AddStopModal } from './AddStopModal';
 
@@ -79,7 +80,7 @@ export const DayCard: React.FC<DayCardProps> = ({
           <div className="text-right">
             <span className="text-[10px] font-semibold text-slate-400 block uppercase">Day Budget</span>
             <span className="text-sm font-bold text-emerald-400">
-              {dayTotalCost} {currency}
+              {formatCurrency(dayTotalCost, currency)}
             </span>
           </div>
 

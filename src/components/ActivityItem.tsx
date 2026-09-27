@@ -21,6 +21,7 @@ import {
   Moon
 } from 'lucide-react';
 import { ItineraryStop, ActivityCategory } from '../types/itinerary';
+import { formatCurrency } from '../lib/formatUtils';
 
 interface ActivityItemProps {
   stop: ItineraryStop;
@@ -127,8 +128,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
               {getCategoryBadge(stop.category)}
               {stop.estimatedCost > 0 && (
                 <span className="text-xs font-semibold text-emerald-400 flex items-center">
-                  <DollarSign className="w-3 h-3 -mr-0.5" />
-                  {stop.estimatedCost} {currency}
+                  {formatCurrency(stop.estimatedCost, currency)}
                 </span>
               )}
             </div>
