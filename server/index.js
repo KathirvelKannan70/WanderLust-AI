@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { generateItineraryFromAI, refineItineraryFromAI } from './gemini.js';
+import { getAllTrips, saveTripToDb, deleteTripFromDb } from './db.js';
 
 dotenv.config();
 
@@ -44,7 +45,7 @@ app.post('/api/generate-itinerary', async (req, res) => {
         return res.status(500).json({ error: "Simulated 500 Server Internal Error" });
       }
       if (testFailureMode === 'slow_timeout') {
-        await new Promise(r => setTimeout(r, 16000)); // Delay for timeout test
+        await new Promise(r => setTimeout(r, 46000)); // Delay for timeout test
       }
     }
 
@@ -81,7 +82,39 @@ app.post('/api/refine-itinerary', async (req, res) => {
   }
 });
 
+// Database API Endpoints: Persistent Server Storage
+app.get('/api/trips', (req, res) => {
+  try {
+    const trips = getAllTrips();
+    res.json({ success: true, trips });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/trips', (req, res) => {
+  try {
+    const { itinerary } = req.body;
+    if (!itinerary) return res.status(400).json({ error: 'Itinerary is required.' });
+    const trips = saveTripToDb(itinerary);
+    res.json({ success: true, trips });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/trips/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const trips = deleteTripFromDb(id);
+    res.json({ success: true, trips });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 AI Server proxy running on http://localhost:${PORT}`);
-  console.log(`🔑 Gemini Key loaded: ${Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') ? 'YES' : 'NO (API key required)'}`);
+  console.log(`💾 Server Database API initialized (trips_db.json)`);
+  console.log(`🔑 Gemini Key loaded: ${Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') ? 'YES' : 'NO'}`);
 });

@@ -31,7 +31,7 @@ export function App() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    setSavedTrips(getSavedTrips());
+    getSavedTrips().then((trips) => setSavedTrips(trips));
 
     // Check server status
     fetch('/api/health')
@@ -99,14 +99,14 @@ export function App() {
     }
   };
 
-  const handleSaveSession = () => {
+  const handleSaveSession = async () => {
     if (!itinerary) return;
-    const updated = saveTrip(itinerary);
+    const updated = await saveTrip(itinerary);
     setSavedTrips(updated);
   };
 
-  const handleDeleteSavedTrip = (id: string) => {
-    const updated = deleteSavedTrip(id);
+  const handleDeleteSavedTrip = async (id: string) => {
+    const updated = await deleteSavedTrip(id);
     setSavedTrips(updated);
   };
 

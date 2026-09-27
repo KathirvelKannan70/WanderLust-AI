@@ -1,6 +1,6 @@
 import { Itinerary } from '../types/itinerary';
 
-const STORAGE_KEY = 'wanderlust_saved_trips_v1';
+const LOCAL_STORAGE_KEY = 'wanderlust_saved_trips_v1';
 
 export interface SavedTrip {
   id: string;
@@ -8,19 +8,58 @@ export interface SavedTrip {
   itinerary: Itinerary;
 }
 
-export function getSavedTrips(): SavedTrip[] {
+/**
+ * Fetch all saved trips from the Server Database API (with LocalStorage fallback)
+ */
+export async function getSavedTrips(): Promise<SavedTrip[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const res = await fetch('/api/trips');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.trips)) {
+        return data.trips;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Server DB API unavailable, falling back to LocalStorage:', err);
+  }
+
+  // LocalStorage Fallback
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch (err) {
-    console.error('Failed to read saved trips from localStorage:', err);
     return [];
   }
 }
 
-export function saveTrip(itinerary: Itinerary): SavedTrip[] {
+/**
+ * Save trip to Server Database API (with LocalStorage fallback)
+ */
+export async function saveTrip(itinerary: Itinerary): Promise<SavedTrip[]> {
   try {
-    const trips = getSavedTrips();
+    const res = await fetch('/api/trips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itinerary }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.trips)) {
+        // Sync to local storage as well
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data.trips));
+        return data.trips;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Server DB save failed, syncing to LocalStorage:', err);
+  }
+
+  // LocalStorage Fallback
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const trips: SavedTrip[] = raw ? JSON.parse(raw) : [];
     const existingIndex = trips.findIndex((t) => t.itinerary.tripTitle === itinerary.tripTitle);
 
     const newSavedItem: SavedTrip = {
@@ -37,22 +76,41 @@ export function saveTrip(itinerary: Itinerary): SavedTrip[] {
       updatedTrips = [newSavedItem, ...trips];
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedTrips));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedTrips));
     return updatedTrips;
   } catch (err) {
-    console.error('Failed to save trip to localStorage:', err);
-    return getSavedTrips();
+    return [];
   }
 }
 
-export function deleteSavedTrip(id: string): SavedTrip[] {
+/**
+ * Delete saved trip from Server Database API (with LocalStorage fallback)
+ */
+export async function deleteSavedTrip(id: string): Promise<SavedTrip[]> {
   try {
-    const trips = getSavedTrips();
+    const res = await fetch(`/api/trips/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.trips)) {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data.trips));
+        return data.trips;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Server DB delete failed:', err);
+  }
+
+  // LocalStorage Fallback
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const trips: SavedTrip[] = raw ? JSON.parse(raw) : [];
     const updated = trips.filter((t) => t.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
     return updated;
   } catch (err) {
-    console.error('Failed to delete saved trip:', err);
-    return getSavedTrips();
+    return [];
   }
 }
