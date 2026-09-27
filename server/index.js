@@ -61,8 +61,14 @@ app.post('/api/generate-itinerary', async (req, res) => {
       source: aiResult.source,
     });
   } catch (error) {
-    console.error('⚠️ Realtime Gemini Generation Error:', error.message);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    let cleanMsg = error.message || 'Internal Server Error';
+    try {
+      const parsed = JSON.parse(cleanMsg);
+      if (parsed?.error?.message) cleanMsg = parsed.error.message;
+    } catch {}
+
+    console.error('⚠️ Realtime Gemini Generation Error:', cleanMsg);
+    return res.status(500).json({ error: cleanMsg });
   }
 });
 
@@ -82,8 +88,14 @@ app.post('/api/refine-itinerary', async (req, res) => {
       source: refinedResult.source
     });
   } catch (error) {
-    console.error('⚠️ Realtime Gemini Refinement Error:', error.message);
-    return res.status(500).json({ error: error.message || 'Refinement failed' });
+    let cleanMsg = error.message || 'Refinement failed';
+    try {
+      const parsed = JSON.parse(cleanMsg);
+      if (parsed?.error?.message) cleanMsg = parsed.error.message;
+    } catch {}
+
+    console.error('⚠️ Realtime Gemini Refinement Error:', cleanMsg);
+    return res.status(500).json({ error: cleanMsg });
   }
 });
 

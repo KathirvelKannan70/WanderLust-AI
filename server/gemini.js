@@ -104,7 +104,7 @@ Generate a detailed, custom day-by-day travel itinerary matching the JSON schema
   }
 
   // Direct REST API fallback
-  for (const modelName of ['gemini-3.6-flash', 'gemini-flash-latest']) {
+  for (const modelName of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']) {
     try {
       console.log(`🔄 Attempting direct REST call to Gemini API (${modelName})...`);
       const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -128,7 +128,13 @@ Generate a detailed, custom day-by-day travel itinerary matching the JSON schema
     }
   }
 
-  throw new Error(lastError?.message || 'Failed to fetch realtime response from Gemini API.');
+  let finalErrorMsg = lastError?.message || 'Failed to fetch realtime response from Gemini API.';
+  try {
+    const parsedErr = JSON.parse(finalErrorMsg);
+    if (parsedErr?.error?.message) finalErrorMsg = parsedErr.error.message;
+  } catch {}
+
+  throw new Error(finalErrorMsg);
 }
 
 export async function refineItineraryFromAI(currentItinerary, refinementInstruction) {
@@ -181,7 +187,7 @@ Modify the itinerary according to the user request while preserving the strict J
   }
 
   // Direct REST API Fallback for Refinement
-  for (const modelName of ['gemini-3.6-flash', 'gemini-flash-latest']) {
+  for (const modelName of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']) {
     try {
       console.log(`🔄 Attempting direct REST Refinement (${modelName})...`);
       const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -205,5 +211,11 @@ Modify the itinerary according to the user request while preserving the strict J
     }
   }
 
-  throw new Error(lastError?.message || 'Refinement request failed across all Gemini models.');
+  let finalRefineErrorMsg = lastError?.message || 'Refinement request failed across all Gemini models.';
+  try {
+    const parsedErr = JSON.parse(finalRefineErrorMsg);
+    if (parsedErr?.error?.message) finalRefineErrorMsg = parsedErr.error.message;
+  } catch {}
+
+  throw new Error(finalRefineErrorMsg);
 }

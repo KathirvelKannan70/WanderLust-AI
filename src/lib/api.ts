@@ -52,12 +52,23 @@ export async function fetchItinerary(options: ApiGenerateOptions): Promise<ApiRe
 
     if (!response.ok) {
       const errText = await response.text().catch(() => 'Server error');
+      let cleanDetail = errText;
+      try {
+        const parsed = JSON.parse(errText);
+        if (typeof parsed.error === 'string') cleanDetail = parsed.error;
+        else if (parsed.error?.message) cleanDetail = parsed.error.message;
+      } catch {}
+
+      const isHighDemand = response.status === 503 || cleanDetail.includes('503') || cleanDetail.toLowerCase().includes('high demand');
+
       return {
         success: false,
         error: {
           type: 'server_error',
-          message: `Server returned HTTP status ${response.status}`,
-          details: [errText || 'An unexpected internal error occurred on the backend server.'],
+          message: isHighDemand
+            ? 'Gemini AI API High Demand (503 Service Unavailable)'
+            : `Server returned HTTP status ${response.status}`,
+          details: [cleanDetail || 'An unexpected internal error occurred on the backend server.'],
         },
       };
     }
