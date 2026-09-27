@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { AlertTriangle, RefreshCw, Terminal, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
-import { ApiResponse } from '../lib/api';
+import { AlertTriangle, RefreshCw, Terminal, ChevronDown, ChevronUp } from 'lucide-react';
+import type { ApiResponse } from '../lib/api';
 
 interface ErrorStateProps {
   error: ApiResponse['error'];
   onRetry: () => void;
-  onUseMockFallback: () => void;
 }
 
-export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry, onUseMockFallback }) => {
+export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
   const [showLogs, setShowLogs] = useState(false);
 
   if (!error) return null;
@@ -24,7 +23,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry, onUseMoc
       case 'timeout':
         return <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">Request Timeout</span>;
       default:
-        return <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">API Connection Error</span>;
+        return <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">Realtime API Error</span>;
     }
   };
 
@@ -43,14 +42,14 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry, onUseMoc
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 flex-wrap gap-y-1 mb-2">
               {getErrorTypeBadge()}
-              <span className="text-xs text-slate-400">Error Handling Active</span>
+              <span className="text-xs text-slate-400">Strict Realtime Mode</span>
             </div>
 
             <h3 className="text-xl font-bold text-white tracking-tight">
-              AI Output Validation Failed
+              Realtime AI Request Failed
             </h3>
 
-            <p className="text-sm text-slate-300 mt-1 leading-relaxed">
+            <p className="text-sm text-slate-300 mt-1 leading-relaxed font-semibold text-red-300">
               {error.message}
             </p>
 
@@ -70,7 +69,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry, onUseMoc
                 className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-indigo-400 transition-colors"
               >
                 <Terminal className="w-3.5 h-3.5" />
-                <span>{showLogs ? 'Hide Technical Diagnostic Logs' : 'View Developer Diagnostic Logs & Raw Output'}</span>
+                <span>{showLogs ? 'Hide Technical Diagnostic Logs' : 'View Technical Diagnostic Logs & Raw Output'}</span>
                 {showLogs ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
 
@@ -98,15 +97,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry, onUseMoc
                 className="w-full sm:w-auto px-5 py-2.5 font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-1.5"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Retry Request with AI</span>
-              </button>
-
-              <button
-                onClick={onUseMockFallback}
-                className="w-full sm:w-auto px-5 py-2.5 font-bold text-xs text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all flex items-center justify-center space-x-1.5"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Load Verified Demo Itinerary</span>
+                <span>Retry Realtime Request</span>
               </button>
             </div>
 

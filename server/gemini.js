@@ -1,5 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-import { generateMockItinerary } from './mockData.js';
 
 const SYSTEM_PROMPT = `
 You are an expert AI Travel Planner assistant.
@@ -49,23 +48,23 @@ export async function generateItineraryFromAI(userPrompt, preferences = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    console.log('ℹ️ No GEMINI_API_KEY detected in env. Using smart mock itinerary generator.');
-    return { data: generateMockItinerary(userPrompt, preferences), raw: null, source: 'mock' };
+    throw new Error('GEMINI_API_KEY is not configured in .env. Please set a valid API key from https://aistudio.google.com/ in your .env file.');
   }
 
   const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
-      console.log(`🤖 Requesting Gemini API with model: ${modelName}...`);
+      console.log(`🤖 Requesting Realtime Gemini API (${modelName}) for prompt: "${userPrompt}"...`);
       const ai = new GoogleGenAI({ apiKey });
       
       const fullPrompt = `${SYSTEM_PROMPT}
 
-User Prompt: "${userPrompt}"
+User Request: "${userPrompt}"
 User Preferences: ${JSON.stringify(preferences)}
 
-Generate a detailed day-by-day travel itinerary matching the JSON schema. Return raw JSON ONLY.`;
+Generate a detailed, custom day-by-day travel itinerary matching the JSON schema for "${userPrompt}". Return raw JSON ONLY.`;
 
       const response = await ai.models.generateContent({
         model: modelName,
@@ -78,17 +77,18 @@ Generate a detailed day-by-day travel itinerary matching the JSON schema. Return
 
       const text = response.text ? response.text.trim() : '';
       if (text) {
-        console.log(`✅ Success with ${modelName}`);
-        return { data: text, raw: text, source: `gemini (${modelName})` };
+        console.log(`✅ Realtime Gemini AI successfully generated output with ${modelName}`);
+        return { data: text, raw: text, source: `realtime-gemini (${modelName})` };
       }
     } catch (error) {
-      console.warn(`⚠️ Model ${modelName} call failed:`, error.message);
+      console.warn(`⚠️ Model ${modelName} call error:`, error.message);
+      lastError = error;
     }
   }
 
-  // Direct REST API Fallback if SDK fails
+  // Direct REST API attempt as fallback for valid key
   try {
-    console.log('🔄 Attempting Direct Gemini REST API Fallback...');
+    console.log('🔄 Attempting direct REST call to Gemini API...');
     const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const restRes = await fetch(restUrl, {
       method: 'POST',
@@ -99,32 +99,29 @@ Generate a detailed day-by-day travel itinerary matching the JSON schema. Return
       })
     });
 
-    if (restRes.ok) {
-      const restData = await restRes.json();
-      const rawText = restData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      if (rawText) {
-        return { data: rawText, raw: rawText, source: 'gemini (rest fallback)' };
-      }
+    const restData = await restRes.json();
+    if (!restRes.ok) {
+      const apiErrMessage = restData.error?.message || `HTTP ${restRes.status} Error from Gemini API`;
+      throw new Error(`Gemini API Error: ${apiErrMessage}`);
+    }
+
+    const rawText = restData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (rawText) {
+      return { data: rawText, raw: rawText, source: 'realtime-gemini (rest)' };
     }
   } catch (restErr) {
-    console.warn('⚠️ Direct REST API Fallback failed:', restErr.message);
+    console.error('⚠️ Direct REST Call Error:', restErr.message);
+    throw new Error(restErr.message || lastError?.message || 'Failed to fetch realtime response from Gemini API.');
   }
 
-  console.log('ℹ️ Falling back to dynamic mock generator for:', userPrompt);
-  return { 
-    data: generateMockItinerary(userPrompt, preferences), 
-    raw: null, 
-    source: 'mock_fallback' 
-  };
+  throw new Error(lastError?.message || 'Gemini API returned an empty or invalid response.');
 }
 
 export async function refineItineraryFromAI(currentItinerary, refinementInstruction) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    const updated = JSON.parse(JSON.stringify(currentItinerary));
-    updated.summary += ` (Refined: ${refinementInstruction})`;
-    return { data: updated, raw: null, source: 'mock' };
+    throw new Error('GEMINI_API_KEY is not configured in .env file.');
   }
 
   try {
@@ -148,13 +145,9 @@ Modify the itinerary according to the user request while preserving the strict J
     });
 
     const text = response.text ? response.text.trim() : '';
-    return { data: text, raw: text, source: 'gemini' };
+    return { data: text, raw: text, source: 'realtime-gemini' };
   } catch (error) {
     console.error('⚠️ Gemini Refinement Failed:', error.message);
-    return { 
-      data: currentItinerary, 
-      raw: null, 
-      source: 'mock_fallback' 
-    };
+    throw new Error(`Realtime Refinement failed: ${error.message}`);
   }
 }

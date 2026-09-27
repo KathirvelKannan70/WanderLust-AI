@@ -8,10 +8,11 @@ import { PackingChecklist } from './components/PackingChecklist';
 import { LoadingState } from './components/LoadingState';
 import { ErrorState } from './components/ErrorState';
 import { SavedTripsModal } from './components/SavedTripsModal';
-import { fetchItinerary, fetchRefineItinerary, ApiResponse } from './lib/api';
-import { Itinerary, TravelPreferences } from './types/itinerary';
-import { getSavedTrips, saveTrip, deleteSavedTrip, SavedTrip } from './lib/storage';
-import { generateMockItinerary } from './lib/mockData';
+import { fetchItinerary, fetchRefineItinerary } from './lib/api';
+import type { ApiResponse } from './lib/api';
+import type { Itinerary, TravelPreferences } from './types/itinerary';
+import { getSavedTrips, saveTrip, deleteSavedTrip } from './lib/storage';
+import type { SavedTrip } from './lib/storage';
 import { exportToJson, exportToMarkdown, triggerPrintPdf } from './lib/exportUtils';
 import { Download, FileText, Printer, Sparkles } from 'lucide-react';
 
@@ -94,7 +95,7 @@ export function App() {
     if (response.success && response.data) {
       setItinerary(response.data);
     } else if (response.error) {
-      alert(`Refinement failed: ${response.error.message}`);
+      alert(`Realtime refinement failed: ${response.error.message}`);
     }
   };
 
@@ -107,16 +108,6 @@ export function App() {
   const handleDeleteSavedTrip = (id: string) => {
     const updated = deleteSavedTrip(id);
     setSavedTrips(updated);
-  };
-
-  const handleLoadMockFallback = () => {
-    const mock = generateMockItinerary(
-      lastSubmittedPrompt?.prompt || 'Tokyo Exploration',
-      lastSubmittedPrompt?.prefs || {}
-    );
-    setItinerary(mock as Itinerary);
-    setError(null);
-    setIsLoading(false);
   };
 
   const isCurrentTripSaved = Boolean(
@@ -168,7 +159,6 @@ export function App() {
                 );
               }
             }}
-            onUseMockFallback={handleLoadMockFallback}
           />
         )}
 
@@ -186,7 +176,7 @@ export function App() {
             <div className="w-full max-w-5xl mx-auto px-4 mb-6 flex items-center justify-between flex-wrap gap-3">
               <span className="text-xs font-semibold text-slate-400 flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Interactive Structured Data UI</span>
+                <span>Realtime AI Structured Itinerary</span>
               </span>
 
               <div className="flex items-center space-x-2">

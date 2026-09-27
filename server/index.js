@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { generateItineraryFromAI, refineItineraryFromAI } from './gemini.js';
-import { generateMockItinerary } from './mockData.js';
 
 dotenv.config();
 
@@ -51,14 +50,12 @@ app.post('/api/generate-itinerary', async (req, res) => {
 
     const aiResult = await generateItineraryFromAI(prompt, preferences);
 
-    // Return the response object (could be string or object)
     return res.json({
       result: aiResult.data,
       source: aiResult.source,
-      errorNotice: aiResult.errorNotice || null
     });
   } catch (error) {
-    console.error('Error generating itinerary:', error);
+    console.error('⚠️ Realtime Gemini Generation Error:', error.message);
     return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
@@ -79,12 +76,12 @@ app.post('/api/refine-itinerary', async (req, res) => {
       source: refinedResult.source
     });
   } catch (error) {
-    console.error('Error refining itinerary:', error);
+    console.error('⚠️ Realtime Gemini Refinement Error:', error.message);
     return res.status(500).json({ error: error.message || 'Refinement failed' });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 AI Server proxy running on http://localhost:${PORT}`);
-  console.log(`🔑 Gemini Key loaded: ${Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') ? 'YES' : 'NO (Using mock mode)'}`);
+  console.log(`🔑 Gemini Key loaded: ${Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') ? 'YES' : 'NO (API key required)'}`);
 });
