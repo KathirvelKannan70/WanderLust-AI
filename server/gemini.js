@@ -1,11 +1,20 @@
 import { GoogleGenAI } from '@google/genai';
 
 const SYSTEM_PROMPT = `
-You are an expert AI Travel Planner assistant.
+You are an expert AI Travel Planner assistant specializing in detailed, highly immersive travel itineraries.
 You MUST output ONLY valid JSON matching the exact schema below.
 DO NOT include markdown formatting like \`\`\`json or \`\`\`, DO NOT add introductory text or postscript commentary.
 
-CRITICAL CURRENCY RULE: Default all budget estimations and activity cost numbers to Indian Rupees ("INR" - ₹) unless the user explicitly requests another currency.
+CRITICAL ITINERARY RULES:
+1. CURRENCY: Default all budget estimations and activity cost numbers to Indian Rupees ("INR" - ₹) unless the user explicitly requests another currency.
+2. HIGH DENSITY & RICHNESS: For EACH day, generate a full, packed schedule with 4 to 5 distinct, well-planned stops:
+   - 🌅 Morning Landmark / Temple / Culture (e.g., 08:30 AM)
+   - 🏛️ Mid-Day Exploration / Sightseeing (e.g., 11:00 AM)
+   - 🍛 Authentic Local Lunch & Specialty Food (e.g., 01:30 PM)
+   - 🛍️ Afternoon Shopping / Craft / Nature Stroll (e.g., 04:30 PM)
+   - 🌙 Evening Dinner / Night Market / Viewpoint (e.g., 07:30 PM)
+3. EXACT DURATION: If the user prompt specifies a number of days (e.g. "5 days in Kumbakonam" or "4 days in Madurai"), generate EXACTLY that number of days in the "days" array. If unspecified, default to 4 full days.
+4. DEEP INSIDER TIPS: Write rich, engaging descriptions and specific insider tips (e.g., best dishes to try, dress codes, ticket booking advice) for every single stop.
 
 JSON Schema:
 {
@@ -24,7 +33,7 @@ JSON Schema:
       "stops": [
         {
           "id": "string (unique)",
-          "time": "string (e.g. 09:00 AM)",
+          "time": "string (e.g. 08:30 AM)",
           "title": "string",
           "description": "string",
           "category": "sights" | "food" | "shopping" | "transport" | "accommodation" | "nature" | "nightlife",
@@ -57,15 +66,14 @@ export async function generateItineraryFromAI(userPrompt, preferences = {}) {
     'gemini-3.6-flash',
     'gemini-flash-latest',
     'gemini-3.1-flash-lite',
-    'gemini-3.8-flash',
-    'gemini-2.5-flash'
+    'gemini-3.8-flash'
   ];
   
   let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
-      console.log(`🤖 Requesting Realtime Gemini API (${modelName}) for prompt: "${userPrompt}"...`);
+      console.log(`🤖 Requesting High-Density Realtime Gemini API (${modelName}) for prompt: "${userPrompt}"...`);
       const ai = new GoogleGenAI({ apiKey });
       
       const fullPrompt = `${SYSTEM_PROMPT}
@@ -86,7 +94,7 @@ Generate a detailed, custom day-by-day travel itinerary matching the JSON schema
 
       const text = response.text ? response.text.trim() : '';
       if (text) {
-        console.log(`✅ Realtime Gemini AI successfully generated output with ${modelName}`);
+        console.log(`✅ High-Density Gemini AI successfully generated output with ${modelName}`);
         return { data: text, raw: text, source: `realtime-gemini (${modelName})` };
       }
     } catch (error) {
@@ -95,7 +103,7 @@ Generate a detailed, custom day-by-day travel itinerary matching the JSON schema
     }
   }
 
-  // Direct REST API fallback with working models
+  // Direct REST API fallback
   for (const modelName of ['gemini-3.6-flash', 'gemini-flash-latest']) {
     try {
       console.log(`🔄 Attempting direct REST call to Gemini API (${modelName})...`);
@@ -150,7 +158,7 @@ ${JSON.stringify(currentItinerary, null, 2)}
 
 User Refinement Request: "${refinementInstruction}"
 
-Modify the itinerary according to the user request while preserving the strict JSON schema. Return raw JSON ONLY.`;
+Modify the itinerary according to the user request while preserving the strict JSON schema and high activity density. Return raw JSON ONLY.`;
 
       const response = await ai.models.generateContent({
         model: modelName,
