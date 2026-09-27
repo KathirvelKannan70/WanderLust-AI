@@ -20,7 +20,7 @@ export interface ApiResponse {
   };
 }
 
-const TIMEOUT_MS = 15000; // 15s timeout limit
+const TIMEOUT_MS = 45000; // 45s timeout limit for complex multi-day AI requests
 
 export async function fetchItinerary(options: ApiGenerateOptions): Promise<ApiResponse> {
   const { prompt, preferences, testFailureMode, signal } = options;
