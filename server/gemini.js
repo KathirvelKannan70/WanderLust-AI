@@ -7,7 +7,7 @@ DO NOT include markdown formatting like \`\`\`json or \`\`\`, DO NOT add introdu
 
 CRITICAL ITINERARY RULES:
 1. CURRENCY: Default all budget estimations and activity cost numbers to Indian Rupees ("INR" - ₹) unless the user explicitly requests another currency.
-2. HIGH DENSITY & RICHNESS: For EACH day, generate a full, packed schedule with 4 to 5 distinct, well-planned stops:
+2. HIGH DENSITY & MINIMUM 4-5 STOPS PER DAY: Every day in the itinerary MUST contain strictly 4 to 5 complete, distinct activities/stops. NEVER generate fewer than 4 stops for any day. Every day must include:
    - 🌅 Morning Landmark / Temple / Culture (e.g., 08:30 AM)
    - 🏛️ Mid-Day Exploration / Sightseeing (e.g., 11:00 AM)
    - 🍛 Authentic Local Lunch & Specialty Food (e.g., 01:30 PM)
