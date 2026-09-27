@@ -117,7 +117,7 @@ export function validateItineraryResponse(rawInput: any): ValidationResult {
       error: {
         type: 'wrong_shape',
         message: 'AI response is not a valid JSON object.',
-        details: [`Expected an object `{...}`, but received type: ${typeof parsedObject}`],
+        details: [`Expected an object '{...}', but received type: ${typeof parsedObject}`],
         rawSnippet: JSON.stringify(parsedObject).slice(0, 300)
       }
     };

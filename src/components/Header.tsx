@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Sparkles, Bookmark, RefreshCw, Github } from 'lucide-react';
+import { Compass, Sparkles, Bookmark, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   savedTripsCount: number;
