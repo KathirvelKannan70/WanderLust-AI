@@ -47,11 +47,18 @@ JSON Schema:
 export async function generateItineraryFromAI(userPrompt, preferences = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured in .env. Please set a valid API key from https://aistudio.google.com/ in your .env file.');
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is missing from .env file.');
   }
 
-  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  const modelsToTry = [
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-2.5-flash'
+  ];
+  
   let lastError = null;
 
   for (const modelName of modelsToTry) {
@@ -86,42 +93,39 @@ Generate a detailed, custom day-by-day travel itinerary matching the JSON schema
     }
   }
 
-  // Direct REST API attempt as fallback for valid key
-  try {
-    console.log('🔄 Attempting direct REST call to Gemini API...');
-    const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const restRes = await fetch(restUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\nUser Request: "${userPrompt}"` }] }],
-        generationConfig: { responseMimeType: 'application/json' }
-      })
-    });
+  // Direct REST API fallback with working models
+  for (const modelName of ['gemini-3.6-flash', 'gemini-flash-latest']) {
+    try {
+      console.log(`🔄 Attempting direct REST call to Gemini API (${modelName})...`);
+      const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const restRes = await fetch(restUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\nUser Request: "${userPrompt}"` }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      });
 
-    const restData = await restRes.json();
-    if (!restRes.ok) {
-      const apiErrMessage = restData.error?.message || `HTTP ${restRes.status} Error from Gemini API`;
-      throw new Error(`Gemini API Error: ${apiErrMessage}`);
+      const restData = await restRes.json();
+      if (restRes.ok && restData.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const rawText = restData.candidates[0].content.parts[0].text;
+        console.log(`✅ REST Call Success with ${modelName}`);
+        return { data: rawText, raw: rawText, source: `realtime-gemini (${modelName}-rest)` };
+      }
+    } catch (restErr) {
+      console.warn(`⚠️ REST Call Error (${modelName}):`, restErr.message);
     }
-
-    const rawText = restData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (rawText) {
-      return { data: rawText, raw: rawText, source: 'realtime-gemini (rest)' };
-    }
-  } catch (restErr) {
-    console.error('⚠️ Direct REST Call Error:', restErr.message);
-    throw new Error(restErr.message || lastError?.message || 'Failed to fetch realtime response from Gemini API.');
   }
 
-  throw new Error(lastError?.message || 'Gemini API returned an empty or invalid response.');
+  throw new Error(lastError?.message || 'Failed to fetch realtime response from Gemini API.');
 }
 
 export async function refineItineraryFromAI(currentItinerary, refinementInstruction) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured in .env file.');
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is missing from .env file.');
   }
 
   try {
@@ -136,7 +140,7 @@ User Refinement Request: "${refinementInstruction}"
 Modify the itinerary according to the user request while preserving the strict JSON schema. Return raw JSON ONLY.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.6-flash',
       contents: fullPrompt,
       config: {
         responseMimeType: 'application/json',
@@ -145,7 +149,7 @@ Modify the itinerary according to the user request while preserving the strict J
     });
 
     const text = response.text ? response.text.trim() : '';
-    return { data: text, raw: text, source: 'realtime-gemini' };
+    return { data: text, raw: text, source: 'realtime-gemini (gemini-3.6-flash)' };
   } catch (error) {
     console.error('⚠️ Gemini Refinement Failed:', error.message);
     throw new Error(`Realtime Refinement failed: ${error.message}`);
