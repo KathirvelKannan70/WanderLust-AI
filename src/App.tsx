@@ -18,6 +18,7 @@ import { Download, FileText, Printer, Sparkles } from 'lucide-react';
 
 export function App() {
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
+  const [itinerarySource, setItinerarySource] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [error, setError] = useState<ApiResponse['error'] | null>(null);
@@ -79,6 +80,7 @@ export function App() {
 
     if (response.success && response.data) {
       setItinerary(response.data);
+      setItinerarySource(response.source);
       setError(null);
     } else {
       setError(response.error);
@@ -94,6 +96,7 @@ export function App() {
 
     if (response.success && response.data) {
       setItinerary(response.data);
+      setItinerarySource(response.source);
     } else if (response.error) {
       alert(`Realtime refinement failed: ${response.error.message}`);
     }
@@ -176,7 +179,7 @@ export function App() {
             <div className="w-full max-w-5xl mx-auto px-4 mb-6 flex items-center justify-between flex-wrap gap-3">
               <span className="text-xs font-semibold text-slate-400 flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Realtime AI Structured Itinerary</span>
+                <span>Realtime Gemini AI Structured Itinerary</span>
               </span>
 
               <div className="flex items-center space-x-2">

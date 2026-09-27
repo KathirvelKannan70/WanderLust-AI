@@ -59,15 +59,21 @@ export async function fetchItinerary(options: ApiGenerateOptions): Promise<ApiRe
         else if (parsed.error?.message) cleanDetail = parsed.error.message;
       } catch {}
 
+      const isQuotaExceeded = cleanDetail.includes('Quota exceeded') || cleanDetail.includes('limit: 20') || cleanDetail.includes('rate-limits');
       const isHighDemand = response.status === 503 || cleanDetail.includes('503') || cleanDetail.toLowerCase().includes('high demand');
+
+      let errorMsg = `Server returned HTTP status ${response.status}`;
+      if (isQuotaExceeded) {
+        errorMsg = 'Gemini Free Tier Quota Exceeded (Rate Limit Reached)';
+      } else if (isHighDemand) {
+        errorMsg = 'Gemini AI API High Demand (503 Service Unavailable)';
+      }
 
       return {
         success: false,
         error: {
           type: 'server_error',
-          message: isHighDemand
-            ? 'Gemini AI API High Demand (503 Service Unavailable)'
-            : `Server returned HTTP status ${response.status}`,
+          message: errorMsg,
           details: [cleanDetail || 'An unexpected internal error occurred on the backend server.'],
         },
       };
