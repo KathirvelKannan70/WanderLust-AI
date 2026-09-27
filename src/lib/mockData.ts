@@ -3,36 +3,37 @@ import type { Itinerary } from '../types/itinerary';
 export function generateMockItinerary(prompt = "", preferences: any = {}): Itinerary {
   const lowercasePrompt = prompt.toLowerCase();
   
-  let destination = "Tokyo, Japan";
-  let duration = 4;
+  const durationMatch = lowercasePrompt.match(/(\d+)\s*days?/i);
+  let duration = durationMatch ? parseInt(durationMatch[1], 10) : 4;
+  if (duration < 1) duration = 1;
+  if (duration > 14) duration = 14;
+
+  let destination = "Custom Destination";
+  const inMatch = prompt.match(/in\s+([A-Za-z\s,]+)/i);
+  if (inMatch && inMatch[1]) {
+    destination = inMatch[1].trim();
+  } else {
+    const words = prompt.replace(/\b(\d+|days|day|trip|for|a|in|on|budget|with)\b/gi, '').trim();
+    if (words) {
+      destination = words.charAt(0).toUpperCase() + words.slice(1);
+    }
+  }
+
   let currency = "USD";
-  let estimatedCost = 1450;
-  
-  if (lowercasePrompt.includes("paris") || lowercasePrompt.includes("france")) {
+  let estimatedCost = duration * 250;
+
+  if (lowercasePrompt.includes("kumbakonam")) {
+    destination = "Kumbakonam, Tamil Nadu, India";
+    currency = "INR";
+    estimatedCost = duration * 3500;
+  } else if (lowercasePrompt.includes("paris") || lowercasePrompt.includes("france")) {
     destination = "Paris, France";
-    duration = 5;
-    estimatedCost = 1850;
     currency = "EUR";
-  } else if (lowercasePrompt.includes("bali") || lowercasePrompt.includes("indonesia")) {
-    destination = "Bali, Indonesia";
-    duration = 4;
-    estimatedCost = 850;
+    estimatedCost = duration * 350;
+  } else if (lowercasePrompt.includes("tokyo") || lowercasePrompt.includes("japan")) {
+    destination = "Tokyo, Japan";
     currency = "USD";
-  } else if (lowercasePrompt.includes("iceland") || lowercasePrompt.includes("reykjavik")) {
-    destination = "Reykjavik, Iceland";
-    duration = 5;
-    estimatedCost = 2100;
-    currency = "USD";
-  } else if (lowercasePrompt.includes("york") || lowercasePrompt.includes("nyc")) {
-    destination = "New York City, USA";
-    duration = 3;
-    estimatedCost = 1600;
-    currency = "USD";
-  } else if (lowercasePrompt.includes("rome") || lowercasePrompt.includes("italy")) {
-    destination = "Rome, Italy";
-    duration = 4;
-    estimatedCost = 1350;
-    currency = "EUR";
+    estimatedCost = duration * 300;
   }
 
   return {
@@ -41,12 +42,12 @@ export function generateMockItinerary(prompt = "", preferences: any = {}): Itine
     durationDays: duration,
     estimatedTotalCost: estimatedCost,
     currency: currency,
-    summary: `A carefully crafted ${duration}-day travel experience featuring handpicked local hidden gems, iconic landmarks, authentic dining, and optimal daily pacing based on your request: "${prompt || 'General Exploration'}"`,
+    summary: `A carefully curated ${duration}-day travel itinerary for ${destination} featuring iconic cultural landmarks, authentic local cuisine, and optimal daily pacing based on your prompt: "${prompt}"`,
     travelTips: [
-      "Purchase a local IC transport card at the arrival airport for seamless train & bus transit.",
-      "Keep local cash handy for traditional street food vendors and small boutique shops.",
-      "Book major landmark tickets online 2-3 weeks in advance to skip long entrance queues.",
-      "Download offline maps (Google Maps or Maps.me) before heading out daily."
+      `Check opening hours for major attractions in ${destination} before visiting.`,
+      "Keep local currency handy for small street vendors and traditional crafts.",
+      "Wear comfortable walking shoes for day explorations.",
+      "Download offline Google Maps for easy navigation."
     ],
     days: Array.from({ length: duration }, (_, dIndex) => {
       const dayNum = dIndex + 1;
@@ -57,15 +58,15 @@ export function generateMockItinerary(prompt = "", preferences: any = {}): Itine
         stops: [
           {
             id: `day-${dayNum}-stop-1`,
-            time: "09:00 AM",
+            time: "08:30 AM",
             title: getStopTitle(destination, dayNum, 1),
             description: getStopDesc(destination, dayNum, 1),
             category: "sights",
-            location: getStopLocation(destination, dayNum, 1),
+            location: `${destination} Heritage Zone`,
             estimatedCost: Math.round(estimatedCost * 0.08),
             durationMinutes: 120,
-            tips: "Arrive right at opening time to capture stunning photographs with minimal crowds.",
-            mapQuery: getStopTitle(destination, dayNum, 1) + " " + destination,
+            tips: "Early morning visits offer the best experience and fewer crowds.",
+            mapQuery: `${getStopTitle(destination, dayNum, 1)} ${destination}`,
             completed: false,
           },
           {
@@ -74,24 +75,24 @@ export function generateMockItinerary(prompt = "", preferences: any = {}): Itine
             title: getStopTitle(destination, dayNum, 2),
             description: getStopDesc(destination, dayNum, 2),
             category: "food",
-            location: getStopLocation(destination, dayNum, 2),
+            location: `${destination} Central Market`,
             estimatedCost: Math.round(estimatedCost * 0.05),
             durationMinutes: 90,
-            tips: "Try their seasonal chef specialty. Highly rated by local food critics.",
-            mapQuery: getStopTitle(destination, dayNum, 2) + " " + destination,
+            tips: "Authentic local dining spot highly recommended by travelers.",
+            mapQuery: `${getStopTitle(destination, dayNum, 2)} ${destination}`,
             completed: false,
           },
           {
             id: `day-${dayNum}-stop-3`,
-            time: "03:00 PM",
+            time: "03:30 PM",
             title: getStopTitle(destination, dayNum, 3),
             description: getStopDesc(destination, dayNum, 3),
             category: "shopping",
-            location: getStopLocation(destination, dayNum, 3),
+            location: `${destination} Bazaar District`,
             estimatedCost: Math.round(estimatedCost * 0.06),
             durationMinutes: 105,
             tips: "Great spot for picking up unique handcrafted souvenirs.",
-            mapQuery: getStopTitle(destination, dayNum, 3) + " " + destination,
+            mapQuery: `${getStopTitle(destination, dayNum, 3)} ${destination}`,
             completed: false,
           },
           {
@@ -100,11 +101,11 @@ export function generateMockItinerary(prompt = "", preferences: any = {}): Itine
             title: getStopTitle(destination, dayNum, 4),
             description: getStopDesc(destination, dayNum, 4),
             category: "food",
-            location: getStopLocation(destination, dayNum, 4),
+            location: `${destination} Main Square`,
             estimatedCost: Math.round(estimatedCost * 0.09),
             durationMinutes: 120,
-            tips: "Reservations recommended for dinner. Enjoy the ambient local vibe.",
-            mapQuery: getStopTitle(destination, dayNum, 4) + " " + destination,
+            tips: "Enjoy traditional local dinner specialties and ambient night market.",
+            mapQuery: `${getStopTitle(destination, dayNum, 4)} ${destination}`,
             completed: false,
           }
         ]
@@ -113,63 +114,58 @@ export function generateMockItinerary(prompt = "", preferences: any = {}): Itine
     packingList: [
       {
         category: "Essentials",
-        items: ["Passport & ID", "Universal power adapter", "Comfortable walking sneakers", "Reusable water bottle"]
+        items: ["Government ID & Tickets", "Universal Power Bank", "Comfortable Walking Shoes", "Reusable Water Bottle"]
       },
       {
         category: "Clothing",
-        items: ["Light jacket / windbreaker", "Layerable shirts", "Rain umbrella or poncho", "Casual evening attire"]
+        items: ["Breathable Cotton Wear", "Traditional/Modest Attire for Temples", "Sun Protection / Sunglasses", "Light Umbrella"]
       },
       {
-        category: "Tech & Travel",
-        items: ["Portable battery bank", "Noise-canceling headphones", "Travel insurance documents"]
+        category: "Personal Care",
+        items: ["Sunscreen & Lotion", "Basic First Aid Kit", "Hand Sanitizer & Wipes"]
       }
     ]
   };
 }
 
 function getDayTheme(dest: string, day: number) {
-  if (day === 1) return "Arrival & Historic Foundations";
-  if (day === 2) return "Cultural Immersion & Local Flavors";
-  if (day === 3) return "Modern Wonders & Shopping";
-  if (day === 4) return "Scenic Vistas & Sunset Farewell";
-  return "Hidden Secrets & Relaxed Exploration";
+  if (day === 1) return "Arrival & Ancient Heritage";
+  if (day === 2) return "Temple Trails & Local Flavors";
+  if (day === 3) return "Art, Architecture & Shopping";
+  if (day === 4) return "Scenic Excursions & Rivers";
+  return "Relaxed Cultural Wandering";
 }
 
 function getDayTitle(dest: string, day: number) {
-  if (dest.includes("Tokyo")) {
-    return ["Asakusa Heritage & Sky Views", "Shinjuku Lights & Izakaya Crawl", "Harajuku Pop Culture & Shibuya Crossing", "Ginza Luxury & Hamarikyu Gardens"][day - 1] || "Tokyo Neighborhood Quest";
+  if (dest.includes("Kumbakonam")) {
+    return [
+      "Adi Kumbeswarar Temple & Mahamaham Tank",
+      "Sarangapani & Ramaswamy Architecture",
+      "Darasuram Airavatesvara UNESCO Temple",
+      "Swamimalai Murugan Temple & Silk Weaving",
+      "Kumbakonam Degree Coffee & Local Eats Trail"
+    ][day - 1] || `Kumbakonam Temple Quest - Day ${day}`;
   }
-  if (dest.includes("Paris")) {
-    return ["Eiffel Tower & Seine Cruise", "Louvre Museum & Le Marais", "Montmartre & Sacré-Cœur Artist Quarter", "Versailles Palace Day Trip", "Latin Quarter & Luxembourg Gardens"][day - 1] || "Parisian Wandering";
-  }
-  return `Exploring Highlights of ${dest} - Part ${day}`;
+  return `Exploring Highlights of ${dest} - Day ${day}`;
 }
 
 function getStopTitle(dest: string, day: number, stopNum: number) {
-  if (dest.includes("Tokyo")) {
+  if (dest.includes("Kumbakonam")) {
     const stops = [
-      ["Senso-ji Temple", "Asakusa Kagetsu Ramen", "Nakamise Shopping Street", "Tokyo Skytree Sunset Deck"],
-      ["Meiji Jingu Shrine", "Harajuku Crepes & Takeshita Street", "Shibuya Crossing & Hachiko", "Omoide Yokocho Izakaya"],
-      ["Tsukiji Outer Fish Market", "Sushi Dai Omakase", "Ginza Shopping District", "Roppongi Hills View"],
-      ["Akihabara Electric Town", "Maid Cafe or Kanda Curry", "Animate Main Store", "Robot Dining & Bar"]
+      ["Adi Kumbeswarar Temple", "Famous Kumbakonam Degree Coffee", "Mahamaham Tank Walk", "Traditional South Indian Thali Lunch"],
+      ["Sarangapani Temple", "Ramaswamy Temple Murals", "Sri Mangalambigai Mess", "Chakra Temple Exploration"],
+      ["Darasuram Airavatesvara UNESCO Temple", "Silk Weaving Village Visit", "Venkataramana Hotel Dinner", "Kumbakonam Brass Vessel Market"],
+      ["Swamimalai Bronze Sculpture Heritage", "Cauvery River Bank Stroll", "Murugan Temple Visit", "Local Sweet & Savory Tasting"],
+      ["Uppiliappan Temple Excursion", "Rayas Grand Restaurant", "Kumbakonam Local Craft Shopping", "Sunset Heritage Walk"]
     ];
-    return (stops[day - 1] && stops[day - 1][stopNum - 1]) || `Local Attraction ${stopNum}`;
+    return (stops[day - 1] && stops[day - 1][stopNum - 1]) || `${dest} Heritage Spot #${stopNum}`;
   }
-  if (dest.includes("Paris")) {
-    const stops = [
-      ["Eiffel Tower Lawn Walk", "Café de Flore Lunch", "Champ de Mars Stroll", "Bateaux Parisiens Seine Cruise"],
-      ["Louvre Museum Masterpieces", "Angelina Hot Chocolate & Bistro", "Le Marais Vintage Boutiques", "Le Petit Marche Dinner"],
-      ["Sacré-Cœur Basilica", "Montmartre Artist Square", "Place du Tertre Cafe", "Moulin Rouge Evening View"]
-    ];
-    return (stops[day - 1] && stops[day - 1][stopNum - 1]) || `Parisian Landmark ${stopNum}`;
-  }
-  return `${dest} Famous Highlight #${(day - 1) * 4 + stopNum}`;
+  return `${dest} Landmark #${(day - 1) * 4 + stopNum}`;
 }
 
 function getStopDesc(dest: string, day: number, stopNum: number) {
-  return `Experience the unique charm, architecture, and cultural atmosphere of this iconic location. Perfect for immersing yourself into ${dest}'s vibrant lifestyle.`;
-}
-
-function getStopLocation(dest: string, day: number, stopNum: number) {
-  return `${dest} Central District`;
+  if (dest.includes("Kumbakonam")) {
+    return `Discover the majestic Chola architecture, intricate stone carvings, and sacred spiritual heritage at this famous Kumbakonam landmark.`;
+  }
+  return `Immerse yourself in the local charm, culture, and architecture of ${dest}.`;
 }

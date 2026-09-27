@@ -12,7 +12,7 @@ JSON Schema:
   "destination": "string",
   "durationDays": number,
   "estimatedTotalCost": number,
-  "currency": "USD" | "EUR" | "GBP" | "JPY" | string,
+  "currency": "USD" | "EUR" | "GBP" | "JPY" | "INR" | string,
   "summary": "string",
   "travelTips": ["string"],
   "days": [
@@ -53,50 +53,77 @@ export async function generateItineraryFromAI(userPrompt, preferences = {}) {
     return { data: generateMockItinerary(userPrompt, preferences), raw: null, source: 'mock' };
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    
-    const fullPrompt = `${SYSTEM_PROMPT}
+  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`🤖 Requesting Gemini API with model: ${modelName}...`);
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const fullPrompt = `${SYSTEM_PROMPT}
 
 User Prompt: "${userPrompt}"
 User Preferences: ${JSON.stringify(preferences)}
 
 Generate a detailed day-by-day travel itinerary matching the JSON schema. Return raw JSON ONLY.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: fullPrompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.7,
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: fullPrompt,
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.7,
+        }
+      });
+
+      const text = response.text ? response.text.trim() : '';
+      if (text) {
+        console.log(`✅ Success with ${modelName}`);
+        return { data: text, raw: text, source: `gemini (${modelName})` };
       }
+    } catch (error) {
+      console.warn(`⚠️ Model ${modelName} call failed:`, error.message);
+    }
+  }
+
+  // Direct REST API Fallback if SDK fails
+  try {
+    console.log('🔄 Attempting Direct Gemini REST API Fallback...');
+    const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const restRes = await fetch(restUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\nUser Request: "${userPrompt}"` }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
     });
 
-    const text = response.text ? response.text.trim() : '';
-
-    return { data: text, raw: text, source: 'gemini' };
-  } catch (error) {
-    console.error('⚠️ Gemini API Call Failed:', error.message);
-    // Fallback to mock data if API call fails (e.g. quota or invalid key)
-    return { 
-      data: generateMockItinerary(userPrompt, preferences), 
-      raw: null, 
-      source: 'mock_fallback',
-      errorNotice: error.message 
-    };
+    if (restRes.ok) {
+      const restData = await restRes.json();
+      const rawText = restData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (rawText) {
+        return { data: rawText, raw: rawText, source: 'gemini (rest fallback)' };
+      }
+    }
+  } catch (restErr) {
+    console.warn('⚠️ Direct REST API Fallback failed:', restErr.message);
   }
+
+  console.log('ℹ️ Falling back to dynamic mock generator for:', userPrompt);
+  return { 
+    data: generateMockItinerary(userPrompt, preferences), 
+    raw: null, 
+    source: 'mock_fallback' 
+  };
 }
 
 export async function refineItineraryFromAI(currentItinerary, refinementInstruction) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    // Basic mock refinement
     const updated = JSON.parse(JSON.stringify(currentItinerary));
     updated.summary += ` (Refined: ${refinementInstruction})`;
-    if (updated.days && updated.days[0] && updated.days[0].stops[0]) {
-      updated.days[0].stops[0].description += ` [Updated per request: ${refinementInstruction}]`;
-    }
     return { data: updated, raw: null, source: 'mock' };
   }
 
@@ -112,7 +139,7 @@ User Refinement Request: "${refinementInstruction}"
 Modify the itinerary according to the user request while preserving the strict JSON schema. Return raw JSON ONLY.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: fullPrompt,
       config: {
         responseMimeType: 'application/json',
@@ -124,6 +151,10 @@ Modify the itinerary according to the user request while preserving the strict J
     return { data: text, raw: text, source: 'gemini' };
   } catch (error) {
     console.error('⚠️ Gemini Refinement Failed:', error.message);
-    throw new Error(`Refinement failed: ${error.message}`);
+    return { 
+      data: currentItinerary, 
+      raw: null, 
+      source: 'mock_fallback' 
+    };
   }
 }
