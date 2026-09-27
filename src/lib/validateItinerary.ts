@@ -42,19 +42,35 @@ const itinerarySchema = z.object({
 });
 
 /**
- * Clean markdown backticks and trailing commas before parsing
+ * Clean markdown backticks, preambles, postscripts, and trailing commas before parsing
  */
 export function sanitizeRawJson(rawText: string): string {
   if (!rawText) return '';
   let cleaned = rawText.trim();
 
-  // Strip markdown code fences if model returned ```json ... ```
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+  // 1. Replace fancy smart quotes with standard ASCII quotes
+  cleaned = cleaned
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'");
+
+  // 2. Extract content inside markdown code fences if present (e.g. ```json ... ```)
+  const codeFenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/i);
+  if (codeFenceMatch && codeFenceMatch[1] && codeFenceMatch[1].includes('{')) {
+    cleaned = codeFenceMatch[1].trim();
   }
 
-  // Remove potential trailing commas before closing braces/brackets
+  // 3. Extract JSON object strictly between the first '{' and the last '}'
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+
+  // 4. Remove trailing commas before closing braces/brackets
   cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
+
+  // 5. Strip illegal ASCII control characters (except \n, \r, \t)
+  cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
   return cleaned.trim();
 }
@@ -95,18 +111,47 @@ export function validateItineraryResponse(rawInput: any): ValidationResult {
     try {
       parsedObject = JSON.parse(cleaned);
     } catch (parseError: any) {
-      return {
-        success: false,
-        error: {
-          type: 'malformed_json',
-          message: 'Failed to parse AI output as JSON.',
-          details: [
-            `JSON Syntax Error: ${parseError.message}`,
-            'Ensure model returns valid raw JSON without invalid escape characters.'
-          ],
-          rawSnippet: cleaned.slice(0, 300)
+      // Secondary repair attempt: escape raw unescaped newlines/tabs inside JSON string literals
+      let parseSucceeded = false;
+      try {
+        const escapedStrings = cleaned.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+          return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+        });
+        parsedObject = JSON.parse(escapedStrings);
+        parseSucceeded = true;
+      } catch (secondError: any) {
+        // Fallback: truncated JSON recovery
+        try {
+          const openBraces = (cleaned.match(/\{/g) || []).length;
+          const closeBraces = (cleaned.match(/\}/g) || []).length;
+          const openBrackets = (cleaned.match(/\[/g) || []).length;
+          const closeBrackets = (cleaned.match(/\]/g) || []).length;
+
+          let fix = cleaned.replace(/,?\s*"[^"]*"?\s*:?\s*"?[^"]*$/s, '');
+          for (let i = 0; i < openBrackets - closeBrackets; i++) fix += ']';
+          for (let i = 0; i < openBraces - closeBraces; i++) fix += '}';
+
+          parsedObject = JSON.parse(fix);
+          parseSucceeded = true;
+        } catch (thirdError: any) {
+          // All recovery attempts failed
         }
-      };
+      }
+
+      if (!parseSucceeded) {
+        return {
+          success: false,
+          error: {
+            type: 'malformed_json',
+            message: 'Failed to parse AI output as JSON.',
+            details: [
+              `JSON Syntax Error: ${parseError.message}`,
+              'Ensure model returns valid raw JSON without invalid escape characters.'
+            ],
+            rawSnippet: cleaned.slice(0, 300)
+          }
+        };
+      }
     }
   }
 

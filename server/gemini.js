@@ -63,10 +63,10 @@ export async function generateItineraryFromAI(userPrompt, preferences = {}) {
   }
 
   const modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-3.8-flash'
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-flash-latest'
   ];
   
   let lastError = null;
@@ -139,10 +139,10 @@ export async function refineItineraryFromAI(currentItinerary, refinementInstruct
   }
 
   const modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-3.8-flash'
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-flash-latest'
   ];
 
   let lastError = null;
