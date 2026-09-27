@@ -130,9 +130,20 @@ export async function refineItineraryFromAI(currentItinerary, refinementInstruct
     throw new Error('GEMINI_API_KEY is missing from .env file.');
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    const fullPrompt = `${SYSTEM_PROMPT}
+  const modelsToTry = [
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash'
+  ];
+
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`🤖 Requesting Realtime Refinement (${modelName}) for instruction: "${refinementInstruction}"...`);
+      const ai = new GoogleGenAI({ apiKey });
+      const fullPrompt = `${SYSTEM_PROMPT}
 
 Current Itinerary:
 ${JSON.stringify(currentItinerary, null, 2)}
@@ -141,19 +152,50 @@ User Refinement Request: "${refinementInstruction}"
 
 Modify the itinerary according to the user request while preserving the strict JSON schema. Return raw JSON ONLY.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
-      contents: fullPrompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.7,
-      }
-    });
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: fullPrompt,
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.7,
+        }
+      });
 
-    const text = response.text ? response.text.trim() : '';
-    return { data: text, raw: text, source: 'realtime-gemini (gemini-3.6-flash)' };
-  } catch (error) {
-    console.error('⚠️ Gemini Refinement Failed:', error.message);
-    throw new Error(`Realtime Refinement failed: ${error.message}`);
+      const text = response.text ? response.text.trim() : '';
+      if (text) {
+        console.log(`✅ Realtime Refinement successful with ${modelName}`);
+        return { data: text, raw: text, source: `realtime-gemini (${modelName})` };
+      }
+    } catch (error) {
+      console.warn(`⚠️ Refinement model ${modelName} error:`, error.message);
+      lastError = error;
+    }
   }
+
+  // Direct REST API Fallback for Refinement
+  for (const modelName of ['gemini-3.6-flash', 'gemini-flash-latest']) {
+    try {
+      console.log(`🔄 Attempting direct REST Refinement (${modelName})...`);
+      const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const restRes = await fetch(restUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\nCurrent Itinerary:\n${JSON.stringify(currentItinerary)}\n\nRefinement Request: "${refinementInstruction}"` }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      });
+
+      const restData = await restRes.json();
+      if (restRes.ok && restData.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const rawText = restData.candidates[0].content.parts[0].text;
+        console.log(`✅ REST Refinement Success with ${modelName}`);
+        return { data: rawText, raw: rawText, source: `realtime-gemini (${modelName}-rest)` };
+      }
+    } catch (restErr) {
+      console.warn(`⚠️ REST Refinement Error (${modelName}):`, restErr.message);
+    }
+  }
+
+  throw new Error(lastError?.message || 'Refinement request failed across all Gemini models.');
 }
