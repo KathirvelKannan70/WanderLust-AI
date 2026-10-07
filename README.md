@@ -2,7 +2,7 @@
 > **Flam — Frontend Internship Assignment Submission**  
 > **Candidate Reference:** Kathirvel Kannan  
 > **Live Demo:** [https://flam-frontend-assignment-xn4e.onrender.com](https://flam-frontend-assignment-xn4e.onrender.com)  
-> **GitHub Repository:** [https://github.com/KathirvelKannan70/flam-frontend-assignment](https://github.com/KathirvelKannan70/flam-frontend-assignment)
+> **GitHub Repository:** [(https://github.com/KathirvelKannan70/WanderLust-AI)](https://github.com/KathirvelKannan70/WanderLust-AI))
 
 ---
 
