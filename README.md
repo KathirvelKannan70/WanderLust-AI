@@ -23,8 +23,8 @@ Instead of printing unformatted text in a chatbot window, WanderLust AI requests
 ### 2. Installation
 Clone the repository and install all dependencies:
 ```bash
-git clone https://github.com/KathirvelKannan70/flam-frontend-assignment.git
-cd flam-frontend-assignment
+git clone https://github.com/KathirvelKannan70/WanderLust-AI
+cd WanderLust-AI
 npm install
 ```
 
